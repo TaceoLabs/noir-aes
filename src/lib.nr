@@ -1,16 +1,31 @@
 
 global REDUCTION_POLY: u8 = 0x1b;
 
+unconstrained fn get_bits_uc(byte: u8) -> [u1; 8] {
+    let mut out: [u1; 8] = [0; 8];
+    for i in 0..8 {
+        out[i] = (byte >> i)  as u1;
+    }
+    out
+}
+ fn get_bits(byte: u8) -> [u1; 8] {
+  let b_bits = get_bits_uc(byte);
+  // reconstrain b
+  assert(byte == b_bits[0] as u8 * 1 + b_bits[1] as u8 * 2 + b_bits[2] as u8 * 4 + b_bits[3] as u8 * 8 + b_bits[4] as u8 * 16 + b_bits[5] as u8 * 32 + b_bits[6] as u8 * 64 + b_bits[7] as u8 * 128);
+  b_bits
+}
+
 fn multiply(mut a: u8, mut b: u8) -> u8 {
   let mut result: u8 = 0;
 
-  for _ in 0..8 {
-    let mask_bit: u8 = b & 1;
-    result ^= (a * mask_bit);
+  let b_bits = get_bits(b);
+
+
+  for i in 0..8 {
+    result ^= (a * b_bits[i] as u8);
     let mask2_bit: u8 = (a >> 7) & 1;
     a <<= 1;
     a ^= REDUCTION_POLY * mask2_bit;
-    b >>= 1;
   }
   result
 }
@@ -23,15 +38,47 @@ fn xtime(a: u8) -> u8 {
   result
 }
 
-fn square(c: u8) -> u8 { multiply(c, c) }
+/// squaring in finite field, naive
+fn square(b: u8) -> u8 {
+  multiply(b,b)
+}
 
-fn inverse(c: u8) -> u8{
+/// squaring in finite field, using explicit squaring formula with coefficients
+fn square_explicit(b: u8) -> u8 {
+  let b_bits = get_bits(b);
+
+  let result_bits = [                             // b^2
+    b_bits[0] ^ b_bits[4] ^ b_bits[6],            // (b0 + b4 + b6) + 
+    b_bits[4] ^ b_bits[6] ^ b_bits[7],            // (b4 + b6 + b7)X +
+    b_bits[1] ^ b_bits[5],                        // (b1 + b5)X^2 +
+    b_bits[4] ^ b_bits[5] ^ b_bits[6] ^ b_bits[7],// (b4 + b5 + b6 + b7)X^3 +
+    b_bits[2] ^ b_bits[4] ^ b_bits[7],            // (b2 + b4 + b7)X^4 +
+    b_bits[5] ^ b_bits[6],                        // (b5 + b6)X^5 +
+    b_bits[3] ^ b_bits[5],                        // (b3 + b5)X^6 +
+    b_bits[6] ^ b_bits[7],                        // (b6 + b7)X^7
+  ];
+
+  result_bits[0] as u8 * 1 + result_bits[1] as u8 * 2 + result_bits[2] as u8 * 4 + result_bits[3] as u8 * 8 + 
+  result_bits[4] as u8 * 16 + result_bits[5] as u8 * 32 + result_bits[6] as u8 * 64 + result_bits[7] as u8 * 128 
+}
+
+unconstrained fn inverse_uc(c: u8) -> u8{
   let c3 = multiply(square(c), c);
   let c7 = multiply(square(c3), c);
   let c63 = multiply(square(square(square(c7))), c7);
   let c127 = multiply(square(c63), c);
   let c254 = square(c127); 
   c254
+}
+
+fn inverse(c: u8) -> u8{
+  let c_is_zero = (c == 0) as u8;
+  let c_inv = inverse_uc(c ^ c_is_zero);
+  // for this check to always work, we map 0 to 1 for the injected inverse (1^-1 = 1)
+  assert(multiply(c^c_is_zero, c_inv) == 1);
+
+  // and then map it back from 1 to 0
+  c_inv ^ c_is_zero
 }
 
 global AES_SBOX_AFFINE_CONST: u8 = 0x63;
@@ -210,6 +257,7 @@ fn test_inverse() {
   for i in 1..255 {
     assert(multiply(i, inverse(i)) == 1);
   }
+  assert(inverse(0) == 0);
 }
 
 #[test]
