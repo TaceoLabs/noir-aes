@@ -113,6 +113,7 @@ fn aes_add_key_layer(state: [u8; 16], round_key: [u8; 16]) -> [u8; 16] {
   result
 }
 
+global RCON : [u8;10] = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36];
 fn aes_128_key_schedule(key: [u8;16]) -> [[u8; 16]; 11] {
   let mut result: [[u8; 16];11] = [[0; 16]; 11];
   // copy key into first 16 bytes of result
@@ -120,15 +121,12 @@ fn aes_128_key_schedule(key: [u8;16]) -> [[u8; 16]; 11] {
     result[0][i] = key[i];
   }
   // do the key schedule
-  let mut roundconstant: u8 = 1;
   for j in 1..11 {
     // copy last word into temp, with RotWords, SubWords and Rcon already applied
-    let mut temp : [u8;4] = [aes_sbox(result[j-1][13]) ^ roundconstant, 
+    let mut temp : [u8;4] = [aes_sbox(result[j-1][13]) ^ RCON[j-1], 
                              aes_sbox(result[j-1][14]), 
                              aes_sbox(result[j-1][15]), 
                              aes_sbox(result[j-1][12])];
-    // update rcon
-    roundconstant = multiply(roundconstant, 2);
     // first word
     result[j][0] = result[j-1][0] ^ temp[0];
     result[j][1] = result[j-1][1] ^ temp[1];
