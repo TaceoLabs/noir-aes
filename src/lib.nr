@@ -1,4 +1,6 @@
 
+global REDUCTION_POLY: u8 = 0x1b;
+
 fn multiply(mut a: u8, mut b: u8) -> u8 {
   let mut result: u8 = 0;
 
@@ -7,9 +9,17 @@ fn multiply(mut a: u8, mut b: u8) -> u8 {
     result ^= (a * mask_bit);
     let mask2_bit: u8 = (a >> 7) & 1;
     a <<= 1;
-    a ^= 27 * mask2_bit; // 27 = 1b; the lower 8 bits of the reduction poly
+    a ^= REDUCTION_POLY * mask2_bit;
     b >>= 1;
   }
+  result
+}
+
+/// multiply by 2 in finite field
+fn xtime(a: u8) -> u8 {
+  let mut result: u8 = a << 1;
+  let mask: u8 = (a >> 7) & 1;
+  result ^= REDUCTION_POLY * mask;
   result
 }
 
@@ -70,37 +80,37 @@ fn aes_mix_column_layer(state: [u8; 16]) -> [u8;16] {
   let s1 = state[1];
   let s2 = state[2];
   let s3 = state[3];
-  result[0] = multiply(s0 ^ s1, 2) ^ s1 ^ s2 ^ s3;
-  result[1] = multiply(s1 ^ s2, 2) ^ s2 ^ s3 ^ s0;
-  result[2] = multiply(s2 ^ s3, 2) ^ s3 ^ s0 ^ s1;
-  result[3] = multiply(s3 ^ s0, 2) ^ s0 ^ s1 ^ s2;
+  result[0] = xtime(s0 ^ s1) ^ s1 ^ s2 ^ s3;
+  result[1] = xtime(s1 ^ s2) ^ s2 ^ s3 ^ s0;
+  result[2] = xtime(s2 ^ s3) ^ s3 ^ s0 ^ s1;
+  result[3] = xtime(s3 ^ s0) ^ s0 ^ s1 ^ s2;
   // column 1:
   let s0 = state[4];
   let s1 = state[5];
   let s2 = state[6];
   let s3 = state[7];
-  result[4] = multiply(s0 ^ s1, 2) ^ s1 ^ s2 ^ s3;
-  result[5] = multiply(s1 ^ s2, 2) ^ s2 ^ s3 ^ s0;
-  result[6] = multiply(s2 ^ s3, 2) ^ s3 ^ s0 ^ s1;
-  result[7] = multiply(s3 ^ s0, 2) ^ s0 ^ s1 ^ s2;
+  result[4] = xtime(s0 ^ s1) ^ s1 ^ s2 ^ s3;
+  result[5] = xtime(s1 ^ s2) ^ s2 ^ s3 ^ s0;
+  result[6] = xtime(s2 ^ s3) ^ s3 ^ s0 ^ s1;
+  result[7] = xtime(s3 ^ s0) ^ s0 ^ s1 ^ s2;
   // column 2:
   let s0 = state[8];
   let s1 = state[9];
   let s2 = state[10];
   let s3 = state[11];
-  result[8] = multiply(s0 ^ s1, 2) ^ s1 ^ s2 ^ s3;
-  result[9] = multiply(s1 ^ s2, 2) ^ s2 ^ s3 ^ s0;
-  result[10] = multiply(s2 ^ s3, 2) ^ s3 ^ s0 ^ s1;
-  result[11] = multiply(s3 ^ s0, 2) ^ s0 ^ s1 ^ s2;
-  // column 2:
+  result[8] = xtime(s0 ^ s1) ^ s1 ^ s2 ^ s3;
+  result[9] = xtime(s1 ^ s2) ^ s2 ^ s3 ^ s0;
+  result[10] = xtime(s2 ^ s3) ^ s3 ^ s0 ^ s1;
+  result[11] = xtime(s3 ^ s0) ^ s0 ^ s1 ^ s2;
+  // column 3:
   let s0 = state[12];
   let s1 = state[13];
   let s2 = state[14];
   let s3 = state[15];
-  result[12] = multiply(s0 ^ s1, 2) ^ s1 ^ s2 ^ s3;
-  result[13] = multiply(s1 ^ s2, 2) ^ s2 ^ s3 ^ s0;
-  result[14] = multiply(s2 ^ s3, 2) ^ s3 ^ s0 ^ s1;
-  result[15] = multiply(s3 ^ s0, 2) ^ s0 ^ s1 ^ s2;
+  result[12] = xtime(s0 ^ s1) ^ s1 ^ s2 ^ s3;
+  result[13] = xtime(s1 ^ s2) ^ s2 ^ s3 ^ s0;
+  result[14] = xtime(s2 ^ s3) ^ s3 ^ s0 ^ s1;
+  result[15] = xtime(s3 ^ s0) ^ s0 ^ s1 ^ s2;
 
   result
 }
