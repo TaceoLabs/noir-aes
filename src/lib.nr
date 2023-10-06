@@ -8,11 +8,16 @@ unconstrained fn get_bits_uc(byte: u8) -> [u1; 8] {
     }
     out
 }
- fn get_bits(byte: u8) -> [u1; 8] {
+fn get_bits(byte: u8) -> [u1; 8] {
   let b_bits = get_bits_uc(byte);
   // reconstrain b
-  assert(byte == b_bits[0] as u8 * 1 + b_bits[1] as u8 * 2 + b_bits[2] as u8 * 4 + b_bits[3] as u8 * 8 + b_bits[4] as u8 * 16 + b_bits[5] as u8 * 32 + b_bits[6] as u8 * 64 + b_bits[7] as u8 * 128);
+  assert(byte == recombine_bits(b_bits));
   b_bits
+}
+
+fn recombine_bits(bits: [u1;8]) -> u8{
+  bits[0] as u8 * 1 + bits[1] as u8 * 2 + bits[2] as u8 * 4 + bits[3] as u8 * 8 + 
+  bits[4] as u8 * 16 + bits[5] as u8 * 32 + bits[6] as u8 * 64 + bits[7] as u8 * 128 
 }
 
 fn multiply(mut a: u8, mut b: u8) -> u8 {
@@ -57,9 +62,7 @@ fn square_explicit(b: u8) -> u8 {
     b_bits[3] ^ b_bits[5],                        // (b3 + b5)X^6 +
     b_bits[6] ^ b_bits[7],                        // (b6 + b7)X^7
   ];
-
-  result_bits[0] as u8 * 1 + result_bits[1] as u8 * 2 + result_bits[2] as u8 * 4 + result_bits[3] as u8 * 8 + 
-  result_bits[4] as u8 * 16 + result_bits[5] as u8 * 32 + result_bits[6] as u8 * 64 + result_bits[7] as u8 * 128 
+  recombine_bits(result_bits)
 }
 
 unconstrained fn inverse_uc(c: u8) -> u8{
