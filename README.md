@@ -4,7 +4,7 @@
 
 This repository contains a Noir crate implementing the AES-128 encryption function.
 It should be noted that this implementation only uses basic optimizations and mostly serves as a comparison point for more Zk-friendly encryption functions such as
-[GMiMC](https://github.com/TaceoLabs/noir-gmimc) or [Hydra](https://github.com/TaceoLabs/noir-aes).
+[GMiMC](https://github.com/TaceoLabs/noir-gmimc) or [Hydra](https://github.com/TaceoLabs/noir-hydra).
 
 ## Performance
 
@@ -21,7 +21,7 @@ aes = { tag = "v0.1.0", git = "https://github.com/TaceoLabs/noir-aes" }
 
 ## Examples
 
-To compute a hash from three Field elements, write:
+To encrypt a single block of 16 bytes, we write:
 
 ```Rust
 use dep::aes;
