@@ -213,7 +213,7 @@ fn aes_128_key_schedule(key: [u8;16]) -> [[u8; 16]; 11] {
   result
 }
 
-fn aes_128_enc(pt: [u8;16], key: [u8;16]) -> [u8;16] {
+pub fn aes_128_enc(pt: [u8;16], key: [u8;16]) -> [u8;16] {
   let mut state = pt;
   let key_schedule = aes_128_key_schedule(key);
   // initial key add
