@@ -12,12 +12,11 @@ fn get_bits(byte: u8) -> [u1; 8] {
   let b_bits = get_bits_uc(byte);
   // reconstrain b
   assert(byte == recombine_bits(b_bits));
-  b_bits
+    b_bits
 }
 
-fn recombine_bits(bits: [u1;8]) -> u8{
-  bits[0] as u8 * 1 + bits[1] as u8 * 2 + bits[2] as u8 * 4 + bits[3] as u8 * 8 + 
-  bits[4] as u8 * 16 + bits[5] as u8 * 32 + bits[6] as u8 * 64 + bits[7] as u8 * 128 
+fn recombine_bits(bits: [u1;8]) -> u8 {
+    bits[0] as u8 * 1 + bits[1] as u8 * 2 + bits[2] as u8 * 4 + bits[3] as u8 * 8 + bits[4] as u8 * 16 + bits[5] as u8 * 32 + bits[6] as u8 * 64 + bits[7] as u8 * 128
 }
 
 fn multiply(mut a: u8, mut b: u8) -> u8 {
@@ -32,7 +31,7 @@ fn multiply(mut a: u8, mut b: u8) -> u8 {
     a <<= 1;
     a ^= REDUCTION_POLY * mask2_bit;
   }
-  result
+    result
 }
 
 /// multiply by 2 in finite field
@@ -40,12 +39,12 @@ fn xtime(a: u8) -> u8 {
   let mut result: u8 = a << 1;
   let mask: u8 = (a >> 7) & 1;
   result ^= REDUCTION_POLY * mask;
-  result
+    result
 }
 
 /// squaring in finite field, naive
 fn square(b: u8) -> u8 {
-  multiply(b,b)
+    multiply(b, b)
 }
 
 /// squaring in finite field, using explicit squaring formula with coefficients
@@ -62,49 +61,47 @@ fn square_explicit(b: u8) -> u8 {
     b_bits[3] ^ b_bits[5],                        // (b3 + b5)X^6 +
     b_bits[6] ^ b_bits[7],                        // (b6 + b7)X^7
   ];
-  recombine_bits(result_bits)
+    recombine_bits(result_bits)
 }
 
-unconstrained fn inverse_uc(c: u8) -> u8{
+unconstrained fn inverse_uc(c: u8) -> u8 {
   let c3 = multiply(square(c), c);
   let c7 = multiply(square(c3), c);
   let c63 = multiply(square(square(square(c7))), c7);
   let c127 = multiply(square(c63), c);
-  let c254 = square(c127); 
-  c254
+  let c254 = square(c127);
+    c254
 }
 
-fn inverse(c: u8) -> u8{
+fn inverse(c: u8) -> u8 {
   let c_is_zero = (c == 0) as u8;
   let c_inv = inverse_uc(c ^ c_is_zero);
   // for this check to always work, we map 0 to 1 for the injected inverse (1^-1 = 1)
   assert(multiply(c^c_is_zero, c_inv) == 1);
 
   // and then map it back from 1 to 0
-  c_inv ^ c_is_zero
+    c_inv ^ c_is_zero
 }
 
 global AES_SBOX_AFFINE_CONST: u8 = 0x63;
 
 fn rotl8_1(s: u8) -> u8 {
-  (s << 1) | (s >> 7)
+    (s << 1) | (s >> 7)
 }
 fn rotl8_2(s: u8) -> u8 {
-  (s << 2) | (s >> 6)
+    (s << 2) | (s >> 6)
 }
 fn rotl8_3(s: u8) -> u8 {
-  (s << 3) | (s >> 5)
+    (s << 3) | (s >> 5)
 }
 fn rotl8_4(s: u8) -> u8 {
-  (s << 4) | (s >> 4)
+    (s << 4) | (s >> 4)
 }
 
 fn aes_sbox(s: u8) -> u8 {
   let c = inverse(s);
 
-  c ^ rotl8_1(c) ^ rotl8_2(c) ^
-      rotl8_3(c) ^ rotl8_4(c) ^
-      AES_SBOX_AFFINE_CONST
+    c ^ rotl8_1(c) ^ rotl8_2(c) ^ rotl8_3(c) ^ rotl8_4(c) ^ AES_SBOX_AFFINE_CONST
 }
 
 fn aes_sbox_layer(state: [u8; 16]) -> [u8; 16] {
@@ -113,15 +110,10 @@ fn aes_sbox_layer(state: [u8; 16]) -> [u8; 16] {
   for i in 0..16 {
     result[i] = aes_sbox(state[i]);
   }
-  result
+    result
 }
 fn aes_shift_rows_layer(state: [u8; 16]) -> [u8; 16] {
-  [
-    state[0], state[5], state[10], state[15],
-    state[4], state[9], state[14], state[3],
-    state[8], state[13], state[2], state[7],
-    state[12], state[1], state[6], state[11]
-  ]
+    [state[0], state[5], state[10], state[15], state[4], state[9], state[14], state[3], state[8], state[13], state[2], state[7], state[12], state[1], state[6], state[11]]
 }
 fn aes_mix_column_layer(state: [u8; 16]) -> [u8;16] {
   let mut result: [u8; 16] = [0; 16];
@@ -162,7 +154,7 @@ fn aes_mix_column_layer(state: [u8; 16]) -> [u8;16] {
   result[14] = xtime(s2 ^ s3) ^ s3 ^ s0 ^ s1;
   result[15] = xtime(s3 ^ s0) ^ s0 ^ s1 ^ s2;
 
-  result
+    result
 }
 
 fn aes_add_key_layer(state: [u8; 16], round_key: [u8; 16]) -> [u8; 16] {
@@ -170,7 +162,7 @@ fn aes_add_key_layer(state: [u8; 16], round_key: [u8; 16]) -> [u8; 16] {
   for i in 0..16 {
     result[i] = state[i] ^ round_key[i];
   }
-  result
+    result
 }
 
 global RCON : [u8;10] = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36];
@@ -209,8 +201,7 @@ fn aes_128_key_schedule(key: [u8;16]) -> [[u8; 16]; 11] {
     result[j][15] = result[j-1][15] ^ result[j][11];
   }
 
-
-  result
+    result
 }
 
 pub fn aes_128_enc(pt: [u8;16], key: [u8;16]) -> [u8;16] {
@@ -229,7 +220,7 @@ pub fn aes_128_enc(pt: [u8;16], key: [u8;16]) -> [u8;16] {
   state = aes_sbox_layer(state);
   state = aes_shift_rows_layer(state);
   state = aes_add_key_layer(state, key_schedule[10]);
-  state
+    state
 }
 
 #[test]
@@ -319,7 +310,7 @@ fn test_aes_key_schedule() {
 }
 
 #[test]
-fn test_aes_block_encrypt()  {
+fn test_aes_block_encrypt() {
   let pt1 = [0;16];
   let key1 = [0;16];
   let ct1 = [0x66,0xe9,0x4b,0xd4,0xef,0x8a,0x2c,0x3b,0x88,0x4c,0xfa,0x59,0xca,0x34,0x2b,0x2e];
