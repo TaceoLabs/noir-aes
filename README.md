@@ -16,7 +16,7 @@ In your `Nargo.toml` file, add the following dependency:
 
 ```toml
 [dependencies]
-aes = { tag = "v0.3.0", git = "https://github.com/TaceoLabs/noir-aes" }
+aes = { tag = "v0.4.0", git = "https://github.com/TaceoLabs/noir-aes" }
 ```
 
 ## Examples

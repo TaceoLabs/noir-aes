@@ -17,7 +17,14 @@ fn get_bits(byte: u8) -> [u1; 8] {
 }
 
 fn recombine_bits(bits: [u1;8]) -> u8 {
-    bits[0] as u8 * 1 + bits[1] as u8 * 2 + bits[2] as u8 * 4 + bits[3] as u8 * 8 + bits[4] as u8 * 16 + bits[5] as u8 * 32 + bits[6] as u8 * 64 + bits[7] as u8 * 128
+    bits[0] as u8 * 1
+        + bits[1] as u8 * 2
+        + bits[2] as u8 * 4
+        + bits[3] as u8 * 8
+        + bits[4] as u8 * 16
+        + bits[5] as u8 * 32
+        + bits[6] as u8 * 64
+        + bits[7] as u8 * 128
 }
 
 fn multiply(mut a: u8, mut b: u8) -> u8 {
@@ -28,7 +35,7 @@ fn multiply(mut a: u8, mut b: u8) -> u8 {
     for i in 0..8 {
         result ^= (a * b_bits[i] as u8);
         let mask2_bit: u8 = (a >> 7) & 1;
-        a = std::wrapping_shift_left(a, 1);
+        a = a << 1;
         a ^= REDUCTION_POLY * mask2_bit;
     }
     result
@@ -36,7 +43,7 @@ fn multiply(mut a: u8, mut b: u8) -> u8 {
 
 /// multiply by 2 in finite field
 fn xtime(a: u8) -> u8 {
-    let mut result: u8 = std::wrapping_shift_left(a, 1);
+    let mut result: u8 = a << 1;
     let mask: u8 = (a >> 7) & 1;
     result ^= REDUCTION_POLY * mask;
     result
@@ -89,16 +96,16 @@ global AES_SBOX_AFFINE_CONST: u8 = 0x63;
 fn rotl8_1(s: u8) -> u8 {
     // we use the wrapping function here since we shift out stuff of the u8
     // we can use addition since the two parts are not overlapping and add is cheaper than or
-    std::wrapping_shift_left(s, 1) + (s >> 7)
+    (s << 1) + (s >> 7)
 }
 fn rotl8_2(s: u8) -> u8 {
-    std::wrapping_shift_left(s, 2) + (s >> 6)
+    (s << 2) + (s >> 6)
 }
 fn rotl8_3(s: u8) -> u8 {
-    std::wrapping_shift_left(s, 3) + (s >> 5)
+    (s << 3) + (s >> 5)
 }
 fn rotl8_4(s: u8) -> u8 {
-    std::wrapping_shift_left(s, 4) + (s >> 4)
+    (s << 4) + (s >> 4)
 }
 
 fn aes_sbox(s: u8) -> u8 {
@@ -116,8 +123,10 @@ fn aes_sbox_layer(state: [u8; 16]) -> [u8; 16] {
     result
 }
 fn aes_shift_rows_layer(state: [u8; 16]) -> [u8; 16] {
-    [state[0], state[5], state[10], state[15], state[4], state[9], state[14], state[3], state[8],
-        state[13], state[2], state[7], state[12], state[1], state[6], state[11]]
+    [
+        state[0], state[5], state[10], state[15], state[4], state[9], state[14], state[3], state[8],
+        state[13], state[2], state[7], state[12], state[1], state[6], state[11]
+    ]
 }
 fn aes_mix_column_layer(state: [u8; 16]) -> [u8;16] {
     let mut result: [u8; 16] = [0; 16];
@@ -185,10 +194,12 @@ fn aes_128_key_schedule(key: [u8;16]) -> [[u8; 16]; 11] {
     // do the key schedule
     for j in 1..11 {
         // copy last word into temp, with RotWords, SubWords and Rcon already applied
-        let mut temp : [u8;4] = [aes_sbox(result[j - 1][13]) ^ RCON[j - 1],
+        let mut temp : [u8;4] = [
+            aes_sbox(result[j - 1][13]) ^ RCON[j - 1],
             aes_sbox(result[j - 1][14]),
             aes_sbox(result[j - 1][15]),
-            aes_sbox(result[j - 1][12])];
+            aes_sbox(result[j - 1][12])
+        ];
 
         // first word
         result[j][0] = result[j-1][0] ^ temp[0];
@@ -281,19 +292,35 @@ fn test_aes_sbox() {
 }
 #[test]
 fn test_aes_shift_rows() {
-    assert(aes_shift_rows_layer([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]) == [0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11]);
+    assert(
+        aes_shift_rows_layer([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15])
+        == [0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11]
+    );
 }
 #[test]
 fn test_aes_mix_columns() {
-    assert(aes_mix_column_layer([219, 19, 83, 69, 219, 19, 83, 69, 219, 19, 83, 69, 219, 19, 83, 69]) == [142, 77, 161, 188, 142, 77, 161, 188, 142, 77, 161, 188, 142, 77, 161, 188]);
-    assert(aes_mix_column_layer([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]) == [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
-    assert(aes_mix_column_layer([198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198]) == [198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198]);
-    assert(aes_mix_column_layer([45, 38, 49, 76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]) == [77, 126, 189, 248, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    assert(
+        aes_mix_column_layer([219, 19, 83, 69, 219, 19, 83, 69, 219, 19, 83, 69, 219, 19, 83, 69])
+        == [142, 77, 161, 188, 142, 77, 161, 188, 142, 77, 161, 188, 142, 77, 161, 188]
+    );
+    assert(
+        aes_mix_column_layer([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        == [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    );
+    assert(
+        aes_mix_column_layer([198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198])
+        == [198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198, 198]
+    );
+    assert(
+        aes_mix_column_layer([45, 38, 49, 76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        == [77, 126, 189, 248, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    );
 }
 
 #[test]
 fn test_aes_key_schedule() {
-    let expanded = [[
+    let expanded = [
+        [
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         ],
         [
@@ -325,10 +352,12 @@ fn test_aes_key_schedule() {
         ],
         [
             0xb4, 0xef, 0x5b, 0xcb, 0x3e, 0x92, 0xe2, 0x11, 0x23, 0xe9, 0x51, 0xcf, 0x6f, 0x8f, 0x18, 0x8e
-        ]];
+        ]
+    ];
     assert(aes_128_key_schedule([0; 16]) == expanded);
 
-    let expanded2 = [[
+    let expanded2 = [
+        [
             0x49, 0x20, 0xe2, 0x99, 0xa5, 0x20, 0x52, 0x61, 0x64, 0x69, 0x6f, 0x47, 0x61, 0x74, 0x75, 0x6e
         ],
         [
@@ -360,7 +389,8 @@ fn test_aes_key_schedule() {
         ],
         [
             0x75, 0x59, 0x98, 0x71, 0x5b, 0x51, 0x2a, 0xc0, 0xf1, 0x5e, 0x4c, 0x5c, 0x6c, 0xd0, 0x85, 0xf5
-        ]];
+        ]
+    ];
     let key2 = [0x49, 0x20, 0xe2, 0x99, 0xa5, 0x20, 0x52, 0x61, 0x64, 0x69, 0x6f, 0x47, 0x61, 0x74, 0x75, 0x6e];
     assert(aes_128_key_schedule(key2) == expanded2);
 }
